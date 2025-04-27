@@ -62,7 +62,7 @@ async function scrape({url, selector}, sessionId = "local", returnFullPage = fal
                     await stop();
                 } else if (++j === 60) { // 60 secs timeout
                     if (sessionId) console.log(`[${sessionId}]`, `element with selector: '${selector}' didn't appear, timeout`);
-                    reject([404, 'didn\'t appear']);
+                    reject([204, 'didn\'t appear']);
                     await stop();
                 }
             }
