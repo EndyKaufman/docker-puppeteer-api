@@ -33,7 +33,7 @@ app.use(express.json());
  * @param {string} selector See `scrape()`
  * @return {Promise<string>}
  */
-async function securedScrape({url, selector, hash}, sessionId = "local", returnFullPage = false) {
+async function securedScrape({ url, selector, delayBeforeClose, hash }, sessionId = "local", returnFullPage = false) {
     let myStr = `${url}:${SALT}`;
     let myHash = md5(myStr);
 
@@ -42,24 +42,24 @@ async function securedScrape({url, selector, hash}, sessionId = "local", returnF
         throw [401, 'invalid hash'];
     }
 
-    return await scrape({url, selector}, sessionId, returnFullPage);
+    return await scrape({ url, selector, delayBeforeClose }, sessionId, returnFullPage);
 }
 
 async function handleRequest(req, res, returnFullPage = false) {
     let sesionId = uuid4().replace(/-.*/, '');
-    console.log(`[${sesionId}]`, `requesting from: ${req.headers['x-forwarded-for'] || req.connection.remoteAddress} to fetch: ${req.body.url}`);
+    console.log(`[${sesionId}, ${new Date().toISOString()}]`, `requesting from: ${req.headers['x-forwarded-for'] || req.connection.remoteAddress} to fetch: ${req.body.url}`);
 
     if (!req.body.selector && !returnFullPage) {
-        console.log(`[${sesionId}]`, `must provide a selector for scraping`);
+        console.log(`[${sesionId}, ${new Date().toISOString()}]`, `must provide a selector for scraping`);
         res.status(400).send('must provide a selector for scraping');
         return;
     }
 
     securedScrape(req.body, sesionId, returnFullPage).then((data) => {
-        console.log(`[${sesionId}]`, `sending data with: ${data.length} bytes`);
+        console.log(`[${sesionId}, ${new Date().toISOString()}]`, `sending data with: ${data.length} bytes`);
         res.send(data);
     }).catch((data) => {
-        console.log(`[${sesionId}]`, `sending error ${data[0]}: ${data[1]}`);
+        console.log(`[${sesionId}, ${new Date().toISOString()}]`, `sending error ${data[0]}: ${data[1]}`);
         res.status(data[0]).send(data[1]);
     })
 }

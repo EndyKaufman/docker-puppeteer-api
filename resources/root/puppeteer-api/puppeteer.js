@@ -8,7 +8,46 @@ const packageInfo = require('./package.json');
 
 const puppeteer = require('puppeteer-core');
 const program = require('commander');
-
+const blocked_domains = ['googlesyndication.com', 'adservice.google.com'];
+const minimal_args = [
+    '--autoplay-policy=user-gesture-required',
+    '--disable-background-networking',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-breakpad',
+    '--disable-client-side-phishing-detection',
+    '--disable-component-update',
+    '--disable-default-apps',
+    '--disable-dev-shm-usage',
+    '--disable-domain-reliability',
+    '--disable-extensions',
+    '--disable-features=AudioServiceOutOfProcess',
+    '--disable-hang-monitor',
+    '--disable-ipc-flooding-protection',
+    '--disable-notifications',
+    '--disable-offer-store-unmasked-wallet-cards',
+    '--disable-popup-blocking',
+    '--disable-print-preview',
+    '--disable-prompt-on-repost',
+    '--disable-renderer-backgrounding',
+    '--disable-setuid-sandbox',
+    '--disable-speech-api',
+    '--disable-sync',
+    '--hide-scrollbars',
+    '--ignore-gpu-blacklist',
+    '--metrics-recording-only',
+    '--mute-audio',
+    '--no-default-browser-check',
+    '--no-first-run',
+    '--no-pings',
+    '--no-sandbox',
+    '--no-zygote',
+    '--password-store=basic',
+    '--use-gl=swiftshader',
+    '--use-mock-keychain',
+    '--headless',
+    '--disable-gpu',
+];
 /**
  * Starts the browser and returns the content when element appears.
  *
@@ -16,29 +55,45 @@ const program = require('commander');
  * @param {string} selector CSS selector to check if element appeared, if empty is returns immediately after page is loaded
  * @return {Promise<string>} HTML content after element appeared
  */
-async function scrape({url, selector}, sessionId = "local", returnFullPage = false) {
+async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", returnFullPage = false) {
 
     return new Promise(async (resolve, reject) => {
         try {
-            if (sessionId) console.log(`[${sessionId}]`, 'starting chrome browser');
+            if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'starting chrome browser');
             // see https://github.com/puppeteer/puppeteer/issues/1793#issuecomment-438971272
             const browser = await puppeteer.launch({
-                executablePath: '/usr/bin/chromium-browser',
-                args: ['--no-sandbox', '--disable-gpu']
+                executablePath: '/usr/bin/chromium-bowserr',
+                timeout: 60000,
+                waitForInitialPage: true,
+                args: minimal_args // ['--no-sandbox', '--disable-gpu']
             });
 
             let j = 0;
             const page = await browser.newPage();
+            await page.setRequestInterception(true);
+            page.on('request', (request) => {
+                const url = request.url();
+                if (blocked_domains.some((domain) => url.includes(domain))) {
+                    request.abort();
+                } else {
+                    request.continue();
+                }
+            });
             if (process.env.USER_AGENT) {
                 page.setUserAgent(process.env.USER_AGENT);
             }
 
             async function stop() {
+                if (delayBeforeClose) {
+                    await new Promise((res2) => setTimeout(() => {
+                        res2(true)
+                    }, delayBeforeClose));
+                }
                 if (i) {
-                    if (sessionId) console.log(`[${sessionId}]`, 'clearing refresh interval');
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'clearing refresh interval');
                     clearInterval(i);
                 }
-                if (sessionId) console.log(`[${sessionId}]`, 'closing chrome browser');
+                if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'closing chrome browser');
                 try {
                     await page.close();
                     await browser.close();
@@ -50,18 +105,18 @@ async function scrape({url, selector}, sessionId = "local", returnFullPage = fal
             async function check() {
                 let elements = await page.$$(selector);
                 if (elements.length) {
-                    if (sessionId) console.log(`[${sessionId}]`, `element with selector: '${selector}' appeared, resolving content`);
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `element with selector: '${selector}' appeared, resolving content`);
                     if (returnFullPage) {
                         resolve(await page.content());
                     } else {
                         const elementContents = (await Promise.all(
-                          elements.map(element => page.evaluate(el => el.outerHTML, element))
+                            elements.map(element => page.evaluate(el => el.outerHTML, element))
                         )).join("\n");
                         resolve(elementContents);
                     }
                     await stop();
                 } else if (++j === 60) { // 60 secs timeout
-                    if (sessionId) console.log(`[${sessionId}]`, `element with selector: '${selector}' didn't appear, timeout`);
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `element with selector: '${selector}' didn't appear, timeout`);
                     reject([204, 'didn\'t appear']);
                     await stop();
                 }
@@ -70,21 +125,21 @@ async function scrape({url, selector}, sessionId = "local", returnFullPage = fal
             let i = null, k = null;
             page.once('load', async () => {
                 if (k) {
-                    if (sessionId) console.log(`[${sessionId}]`, 'clearing wait for page load timeout');
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'clearing wait for page load timeout');
                     clearTimeout(k);
                 }
 
                 if (selector) {
-                    if (sessionId) console.log(`[${sessionId}]`, `page loaded; looking for selector: '${selector}'. setting 1000 ms refresh interval`);
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `page loaded; looking for selector: '${selector}'. setting 1000 ms refresh interval`);
                     i = setInterval(check, 1000);
                 } else {
-                    if (sessionId) console.log(`[${sessionId}]`, `page loaded; resolving content immediately`);
+                    if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `page loaded; resolving content immediately`);
                     resolve(await page.content());
                     await stop();
                 }
             });
 
-            if (sessionId) console.log(`[${sessionId}]`, `going to: ${url}`);
+            if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `going to: ${url}`);
             try {
                 await page.goto(url);
             } catch (e) {
@@ -94,7 +149,7 @@ async function scrape({url, selector}, sessionId = "local", returnFullPage = fal
                     await stop();
                 }, 30000);
             }
-        } catch(e) {
+        } catch (e) {
             console.error(`[${sessionId}]`, `puppeteer error: ${e.message}`);
             reject([500, `puppeteer error: ${e.message}`]);
             await stop();
@@ -116,7 +171,7 @@ program
     .command('fetch <url>')
     .description('fetches URL')
     .action(async function (url, cmd) {
-        let req = {url};
+        let req = { url };
         console.log(await scrape(req, null, true));
     });
 
@@ -125,7 +180,7 @@ program
     .description('scrapes URL')
     .option('-s, --selector <selector>', 'returns content after appearance of element pointed by css selector')
     .action(async function (url, cmd) {
-        let req = {url};
+        let req = { url };
         req.selector = cmd.selector;
         console.log(await scrape(req, null, false));
     });
