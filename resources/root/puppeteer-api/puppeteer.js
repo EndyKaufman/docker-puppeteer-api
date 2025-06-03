@@ -62,7 +62,7 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
             if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'starting chrome browser');
             // see https://github.com/puppeteer/puppeteer/issues/1793#issuecomment-438971272
             const browser = await puppeteer.launch({
-                executablePath: '/usr/bin/chromium-bowserr',
+                executablePath: '/usr/bin/chromium-browser',
                 timeout: 60000,
                 waitForInitialPage: true,
                 args: minimal_args // ['--no-sandbox', '--disable-gpu']
@@ -84,11 +84,6 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
             }
 
             async function stop() {
-                if (delayBeforeClose) {
-                    await new Promise((res2) => setTimeout(() => {
-                        res2(true)
-                    }, delayBeforeClose));
-                }
                 if (i) {
                     if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, 'clearing refresh interval');
                     clearInterval(i);
@@ -107,11 +102,27 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
                 if (elements.length) {
                     if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `element with selector: '${selector}' appeared, resolving content`);
                     if (returnFullPage) {
-                        resolve(await page.content());
+
+                        const content = await page.content();
+
+                        if (delayBeforeClose) {
+                            await new Promise((res2) => setTimeout(() => {
+                                res2(true)
+                            }, delayBeforeClose));
+                        }
+
+                        resolve(content);
                     } else {
                         const elementContents = (await Promise.all(
                             elements.map(element => page.evaluate(el => el.outerHTML, element))
                         )).join("\n");
+
+                        if (delayBeforeClose) {
+                            await new Promise((res2) => setTimeout(() => {
+                                res2(true)
+                            }, delayBeforeClose));
+                        }
+
                         resolve(elementContents);
                     }
                     await stop();
@@ -134,7 +145,15 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
                     i = setInterval(check, 1000);
                 } else {
                     if (sessionId) console.log(`[${sessionId}, ${new Date().toISOString()}]`, `page loaded; resolving content immediately`);
-                    resolve(await page.content());
+                    const content = await page.content();
+
+                    if (delayBeforeClose) {
+                        await new Promise((res2) => setTimeout(() => {
+                            res2(true)
+                        }, delayBeforeClose));
+                    }
+
+                    resolve(content);
                     await stop();
                 }
             });

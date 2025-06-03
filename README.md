@@ -196,5 +196,6 @@ func main() {
 ## How to build
 
 ```
-docker build --tag endykaufman/puppeteer-api .
+docker build --tag endykaufman/puppeteer-api:2.2 .
+docker push endykaufman/puppeteer-api:2.2
 ```
