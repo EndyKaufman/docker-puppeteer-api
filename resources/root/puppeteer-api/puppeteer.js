@@ -70,15 +70,15 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
 
             let j = 0;
             const page = await browser.newPage();
-            await page.setRequestInterception(true);
-            page.on('request', (request) => {
-                const url = request.url();
-                if (blocked_domains.some((domain) => url.includes(domain))) {
-                    request.abort();
-                } else {
-                    request.continue();
-                }
-            });
+            // await page.setRequestInterception(true);
+            // page.on('request', (request) => {
+            //     const url = request.url();
+            //     if (blocked_domains.some((domain) => url.includes(domain))) {
+            //         request.abort();
+            //     } else {
+            //         request.continue();
+            //     }
+            // });
             if (process.env.USER_AGENT) {
                 page.setUserAgent(process.env.USER_AGENT);
             }
