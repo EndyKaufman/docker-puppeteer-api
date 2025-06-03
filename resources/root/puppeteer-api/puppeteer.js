@@ -63,9 +63,9 @@ async function scrape({ url, selector, delayBeforeClose }, sessionId = "local", 
             // see https://github.com/puppeteer/puppeteer/issues/1793#issuecomment-438971272
             const browser = await puppeteer.launch({
                 executablePath: '/usr/bin/chromium-browser',
-                timeout: 60000,
-                waitForInitialPage: true,
-                args: minimal_args // ['--no-sandbox', '--disable-gpu']
+                // timeout: 60000,
+                // waitForInitialPage: true,
+                args: ['--no-sandbox', '--disable-gpu']
             });
 
             let j = 0;
