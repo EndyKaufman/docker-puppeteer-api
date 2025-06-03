@@ -22,7 +22,7 @@ Features:
 Start docker container using following command:
 
 ```
-docker run -d -p 8000:8000 --restart unless-stopped --name puppeteer-api -e "SALT=abcdef" l0coful/puppeteer-api
+docker run -d -p 8000:8000 --restart unless-stopped --name puppeteer-api -e "SALT=abcdef" endykaufman/puppeteer-api
 ```
 
 Where:
@@ -140,14 +140,14 @@ The same options as above are executable from the command line in the host OS us
 On page load:
 
 ```
-$ docker run --rm -it --entrypoint "/bin/bash" l0coful/puppeteer-api puppeteer fetch http://example.com | grep "h1"
+$ docker run --rm -it --entrypoint "/bin/bash" endykaufman/puppeteer-api puppeteer fetch http://example.com | grep "h1"
 <h1>Example Domain</h1>
 ```
 
 On `h1` element appearance in DOM:
 
 ```
-$ docker run --rm -it --entrypoint "/bin/bash" l0coful/puppeteer-api puppeteer scrape -s "h1" http://example.com
+$ docker run --rm -it --entrypoint "/bin/bash" endykaufman/puppeteer-api puppeteer scrape -s "h1" http://example.com
 <h1>Example Domain</h1>
 ```
 
@@ -196,5 +196,5 @@ func main() {
 ## How to build
 
 ```
-docker build --tag l0coful/puppeteer-api .
+docker build --tag endykaufman/puppeteer-api .
 ```
